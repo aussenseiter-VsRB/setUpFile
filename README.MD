@@ -1,48 +1,94 @@
 # Hallo kawan!! ini setUp framework pribadi ku
-tujuan pembuatan dari repo ini adalah ribet nya mulai dari awal bikin folder file dll nya di express, jadi saya research dan nemu cara otomisasi nya dengan node, Semoga membantu !
 
-## - set up express
-untuk jalankan file ini silakan di clone terlebi dahulu dan pastikan bahwa anda ada di file yg sama dengan file setup,
-lalu jalan kan promt ini di bash
+Tujuan pembuatan dari repo ini adalah ribetnya mulai dari awal bikin folder, file, dll di Express — jadi saya research dan nemu cara otomisasi nya dengan Node. Semoga membantu!
+
+---
+
+## Set Up Express
+
+Clone repo ini terlebih dahulu, pastikan kamu berada di direktori yang sama dengan file `setUp.js`, lalu jalankan:
+
+```bash
+node setUp.js
 ```
-    node expressSetUp
-``` 
-### hasil folder structure yg didapat
+
+Setelah dijalankan, kamu akan diminta memilih ORM yang ingin digunakan:
+
+```
+🔧 Express Project Setup
+
+Select an ORM:
+  1. Prisma
+  2. Sequelize
+  3. Mongoose
+
+Enter choice (1-3):
+```
+
+---
+
+## Hasil Folder Structure
+
 ```
 src/
 ├── config/
+│   └── db.js
 ├── core/
 │   ├── middleware/
 │   └── utils/
 ├── features/
-│   └── user/
-│       ├── user.controller.js
-│       ├── user.model.js
-│       └── user.routes.js
 ├── app.js
 └── server.js
 tools/
-    └── createModule.js
-        deleteModule.js
+├── createModule.js
+└── deleteModule.js
+prisma/
+└── schema.prisma        ← hanya jika memilih Prisma
 .env
 .env.example
 .gitignore
-package-lock.json
 package.json
-setUpExpress.js
+setUp.js
 ```
 
-### Command yg dapat di gunakan dengan tools yg di sediakan dari set up
+---
 
-### membuat feature bagi routes, models dan controller
-```
-    npm run models ${namaFile} all // untuk menciptakan file secara menyeluruh
-```
-```
-    npm run models ${namaFile} routes // hanya akan membuat routes
+## Command yang Tersedia
+
+### Membuat feature module
+
+```bash
+npm run module <namaFile>             # membuat semua file sekaligus
+npm run module <namaFile> controller  # hanya membuat controller
+npm run module <namaFile> routes      # hanya membuat routes
+npm run module <namaFile> model       # hanya membuat model (Sequelize & Mongoose saja)
 ```
 
-### mengahapus feature
+> **Prisma:** tidak ada `model` file yang di-generate karena model didefinisikan langsung di `prisma/schema.prisma`. Setelah scaffold, tambahkan model ke schema lalu jalankan:
+> ```bash
+> npx prisma migrate dev --name add_<namaFile>
+> ```
+
+### Menghapus feature
+
+```bash
+npm run delete <namaFile>
 ```
-    npm run delete ${namaFile}
+
+### Menjalankan server
+
+```bash
+npm run dev
 ```
+
+---
+
+## Catatan per ORM
+
+| ORM | Koneksi DB | Model |
+|---|---|---|
+| **Prisma** | `DATABASE_URL` di `.env` | Didefinisikan di `schema.prisma` |
+| **Sequelize** | `DB_HOST`, `DB_NAME`, `DB_USER`, dll di `.env` | File `.model.js` di dalam feature |
+| **Mongoose** | `MONGO_URI` di `.env` | File `.model.js` di dalam feature |
+
+Sesuaikan isi `.env` dengan konfigurasi database kamu sebelum menjalankan server.
