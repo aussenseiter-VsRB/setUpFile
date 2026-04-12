@@ -12,7 +12,9 @@ Clone repo ini terlebih dahulu, pastikan kamu berada di direktori yang sama deng
 node setUp.js
 ```
 
-Setelah dijalankan, kamu akan diminta memilih ORM yang ingin digunakan:
+Setelah dijalankan, kamu akan diminta memilih:
+
+1. **ORM** yang ingin digunakan:
 
 ```
 🔧 Express Project Setup
@@ -24,6 +26,14 @@ Select an ORM:
 
 Enter choice (1-3):
 ```
+
+2. **Docker support** (opsional):
+
+```
+Do you want to include a Dockerfile? (y/n):
+```
+
+Jika memilih `y`, akan dibuatkan `Dockerfile`, `docker-compose.yml`, dan `.dockerignore`.
 
 ---
 
@@ -49,6 +59,9 @@ prisma/
 .gitignore
 package.json
 setUp.js
+Dockerfile              ← hanya jika memilih Docker
+docker-compose.yml      ← hanya jika memilih Docker
+.dockerignore           ← hanya jika memilih Docker
 ```
 
 ---
@@ -92,3 +105,52 @@ npm run dev
 | **Mongoose** | `MONGO_URI` di `.env` | File `.model.js` di dalam feature |
 
 Sesuaikan isi `.env` dengan konfigurasi database kamu sebelum menjalankan server.
+
+---
+
+## Docker Support
+
+Jika kamu memilih untuk menyertakan Docker saat setup, file berikut akan dibuat:
+
+```
+Dockerfile
+docker-compose.yml
+.dockerignore
+```
+
+### Database Services via Docker Compose
+
+Docker Compose sudah dikonfigurasi dengan service database sesuai ORM yang dipilih:
+
+| ORM | Service | Port |
+|---|---|---|
+| **Prisma** | PostgreSQL | 5432 |
+| **Sequelize** | PostgreSQL | 5432 |
+| **Mongoose** | MongoDB | 27017 |
+
+### Command Docker
+
+```bash
+npm run docker         # build Docker image
+npm run docker:up      # start containers
+npm run docker:down   # stop containers
+```
+
+### Manual Docker Commands
+
+```bash
+# Build image
+docker build -t myapp .
+
+# Run container
+docker run -p 5000:5000 myapp
+
+# Start database only
+docker compose up -d postgres   # untuk Prisma/Sequelize
+docker compose up -d mongodb    # untuk Mongoose
+
+# Stop database
+docker compose down
+```
+
+> **Catatan:** Sesuaikan `DATABASE_URL` atau `DB_HOST` di `.env` ke `localhost` jika database berjalan di container terpisah, atau ke nama service Docker (`postgres`, `mongodb`) jika keduanya berjalan di docker-compose.
