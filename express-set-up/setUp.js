@@ -39,6 +39,65 @@ const ormEnvAdditions = {
   Mongoose:  `MONGO_URI=mongodb://localhost:27017/mydb`,
 }
 
+const dockerComposeServices = {
+  Prisma:    "postgres",
+  Sequelize: "postgres",
+  Mongoose:  "mongodb",
+}
+
+const dockerComposeYml = {
+  postgres:
+`version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mydb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
+`,
+  mongodb:
+`version: "3.8"
+
+services:
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
+`,
+}
+
+const dockerfileContent = (orm) => `FROM node:20-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY prisma ./prisma
+RUN npx prisma generate
+
+COPY src ./src
+COPY .env.example .env
+
+EXPOSE 5000
+
+CMD ["npm", "run", "dev"]
+`
+
 const ormDbFile = {
   Prisma:
 `import { PrismaClient } from "@prisma/client"
@@ -509,6 +568,13 @@ if (!orm) {
 
 console.log(`\n✓ Using ORM: ${orm}\n`)
 
+const rl2 = readline.createInterface({ input: process.stdin, output: process.stdout })
+const wantsDocker = await ask(rl2, "Do you want to include a Dockerfile? (y/n): ")
+rl2.close()
+
+const includeDocker = wantsDocker.trim().toLowerCase() === "y"
+console.log(includeDocker ? "\n✓ Docker support enabled\n" : "\n✗ Docker support skipped\n")
+
 // package.json
 const pkgPath = path.join(projectDir, "package.json")
 if (!fs.existsSync(pkgPath)) {
@@ -532,6 +598,11 @@ pkg.scripts = {
   dev:    "node --watch src/server.js",
   module: "node tools/createModule.js",
   delete: "node tools/deleteModule.js",
+}
+if (includeDocker) {
+  pkg.scripts.docker  = "docker build -t myapp ."
+  pkg.scripts["docker:up"] = "docker compose up -d"
+  pkg.scripts["docker:down"] = "docker compose down"
 }
 fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2))
 console.log("  Updated package.json")
@@ -568,6 +639,19 @@ if (orm === "Prisma" && !fs.existsSync(path.join(projectDir, "prisma"))) {
   run("npx prisma init --datasource-provider postgresql")
 }
 
+// Docker files
+if (includeDocker) {
+  writeIfMissing(path.join(projectDir, "Dockerfile"), dockerfileContent(orm))
+  writeIfMissing(
+    path.join(projectDir, "docker-compose.yml"),
+    dockerComposeYml[dockerComposeServices[orm]]
+  )
+  writeIfMissing(
+    path.join(projectDir, ".dockerignore"),
+    `node_modules\n.env\n.git\n`
+  )
+}
+
 // tools — written as plain string content, no .toString() hacks
 writeIfMissing(path.join(toolsDir, "createModule.js"), createModuleFile[orm])
 writeIfMissing(path.join(toolsDir, "deleteModule.js"),
@@ -595,5 +679,10 @@ console.log(`  npm run module <name>   — scaffold a feature module`)
 console.log(`  npm run delete <name>   — remove a feature module`)
 if (orm === "Prisma") {
   console.log(`  npx prisma migrate dev  — run migrations after editing schema.prisma`)
+}
+if (includeDocker) {
+  console.log(`  npm run docker          — build Docker image`)
+  console.log(`  npm run docker:up        — start Docker containers`)
+  console.log(`  npm run docker:down     — stop Docker containers`)
 }
 console.log("")
