@@ -181,6 +181,296 @@ export default app
 `,
 }
 
+// ─── Service Layer Templates ───────────────────────────────────────────────────
+
+const serviceContent = {
+  Prisma: (cap, name) =>
+`import prisma from "../../config/db.js"
+
+export const getAll${cap} = async () => {
+  return await prisma.${name}.findMany()
+}
+
+export const get${cap}ById = async (id) => {
+  return await prisma.${name}.findUnique({ where: { id: Number(id) } })
+}
+
+export const create${cap} = async (data) => {
+  return await prisma.${name}.create({ data })
+}
+
+export const update${cap} = async (id, data) => {
+  return await prisma.${name}.update({
+    where: { id: Number(id) },
+    data,
+  })
+}
+
+export const delete${cap} = async (id) => {
+  return await prisma.${name}.delete({ where: { id: Number(id) } })
+}
+`,
+
+  Sequelize: (cap, name) =>
+`import ${cap} from "./${name}.model.js"
+
+export const getAll${cap} = async () => {
+  return await ${cap}.findAll()
+}
+
+export const get${cap}ById = async (id) => {
+  return await ${cap}.findByPk(id)
+}
+
+export const create${cap} = async (data) => {
+  return await ${cap}.create(data)
+}
+
+export const update${cap} = async (id, data) => {
+  const [updated] = await ${cap}.update(data, { where: { id } })
+  if (!updated) return null
+  return await ${cap}.findByPk(id)
+}
+
+export const delete${cap} = async (id) => {
+  const deleted = await ${cap}.destroy({ where: { id } })
+  return deleted > 0
+}
+`,
+
+  Mongoose: (cap, name) =>
+`import ${cap} from "./${name}.model.js"
+
+export const getAll${cap} = async () => {
+  return await ${cap}.find()
+}
+
+export const get${cap}ById = async (id) => {
+  return await ${cap}.findById(id)
+}
+
+export const create${cap} = async (data) => {
+  return await ${cap}.create(data)
+}
+
+export const update${cap} = async (id, data) => {
+  return await ${cap}.findByIdAndUpdate(id, data, { new: true, runValidators: true })
+}
+
+export const delete${cap} = async (id) => {
+  return await ${cap}.findByIdAndDelete(id)
+}
+`,
+}
+
+// ─── Controller Templates ─────────────────────────────────────────────────────
+
+const controllerContent = {
+  Prisma: (cap, name) =>
+`import * as ${name}Service from "./${name}.service.js"
+
+export const getAll${cap} = async (req, res) => {
+  try {
+    const items = await ${name}Service.getAll${cap}()
+    res.json(items)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const get${cap}ById = async (req, res) => {
+  try {
+    const item = await ${name}Service.get${cap}ById(req.params.id)
+    if (!item) return res.status(404).json({ error: "${cap} not found" })
+    res.json(item)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const create${cap} = async (req, res) => {
+  try {
+    const item = await ${name}Service.create${cap}(req.body)
+    res.status(201).json(item)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+
+export const update${cap} = async (req, res) => {
+  try {
+    const item = await ${name}Service.update${cap}(req.params.id, req.body)
+    res.json(item)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+
+export const delete${cap} = async (req, res) => {
+  try {
+    await ${name}Service.delete${cap}(req.params.id)
+    res.status(204).send()
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+`,
+
+  Sequelize: (cap, name) =>
+`import * as ${name}Service from "./${name}.service.js"
+
+export const getAll${cap} = async (req, res) => {
+  try {
+    const items = await ${name}Service.getAll${cap}()
+    res.json(items)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const get${cap}ById = async (req, res) => {
+  try {
+    const item = await ${name}Service.get${cap}ById(req.params.id)
+    if (!item) return res.status(404).json({ error: "${cap} not found" })
+    res.json(item)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const create${cap} = async (req, res) => {
+  try {
+    const item = await ${name}Service.create${cap}(req.body)
+    res.status(201).json(item)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+
+export const update${cap} = async (req, res) => {
+  try {
+    const item = await ${name}Service.update${cap}(req.params.id, req.body)
+    if (!item) return res.status(404).json({ error: "${cap} not found" })
+    res.json(item)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+
+export const delete${cap} = async (req, res) => {
+  try {
+    const deleted = await ${name}Service.delete${cap}(req.params.id)
+    if (!deleted) return res.status(404).json({ error: "${cap} not found" })
+    res.status(204).send()
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+`,
+
+  Mongoose: (cap, name) =>
+`import * as ${name}Service from "./${name}.service.js"
+
+export const getAll${cap} = async (req, res) => {
+  try {
+    const items = await ${name}Service.getAll${cap}()
+    res.json(items)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const get${cap}ById = async (req, res) => {
+  try {
+    const item = await ${name}Service.get${cap}ById(req.params.id)
+    if (!item) return res.status(404).json({ error: "${cap} not found" })
+    res.json(item)
+  } catch (err) {
+    res.status(500).json({ error: err.message })
+  }
+}
+
+export const create${cap} = async (req, res) => {
+  try {
+    const item = await ${name}Service.create${cap}(req.body)
+    res.status(201).json(item)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+
+export const update${cap} = async (req, res) => {
+  try {
+    const item = await ${name}Service.update${cap}(req.params.id, req.body)
+    if (!item) return res.status(404).json({ error: "${cap} not found" })
+    res.json(item)
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+
+export const delete${cap} = async (req, res) => {
+  try {
+    const item = await ${name}Service.delete${cap}(req.params.id)
+    if (!item) return res.status(404).json({ error: "${cap} not found" })
+    res.status(204).send()
+  } catch (err) {
+    res.status(400).json({ error: err.message })
+  }
+}
+`,
+}
+
+// ─── Route Template ───────────────────────────────────────────────────────────
+
+const routeContent = (cap, name) =>
+`import express from "express"
+import {
+  getAll${cap},
+  get${cap}ById,
+  create${cap},
+  update${cap},
+  delete${cap},
+} from "./${name}.controller.js"
+
+const router = express.Router()
+router.get("/", getAll${cap})
+router.get("/:id", get${cap}ById)
+router.post("/", create${cap})
+router.put("/:id", update${cap})
+router.delete("/:id", delete${cap})
+export default router
+`
+
+// ─── Model Templates ──────────────────────────────────────────────────────────
+
+const modelContent = {
+  Sequelize: (cap) =>
+`import { DataTypes } from "sequelize"
+import sequelize from "../../config/db.js"
+
+const ${cap} = sequelize.define("${cap}", {
+  // name: { type: DataTypes.STRING, allowNull: false },
+}, { timestamps: true })
+
+export default ${cap}
+`,
+
+  Mongoose: (cap) =>
+`import mongoose from "mongoose"
+
+const ${cap.toLowerCase()}Schema = new mongoose.Schema(
+  {
+    // name: { type: String, required: true },
+  },
+  { timestamps: true }
+)
+
+const ${cap} = mongoose.model("${cap}", ${cap.toLowerCase()}Schema)
+export default ${cap}
+`,
+}
+
 // ─── createModule.js source per ORM ─────────────────────────────────────────
 // These are plain strings written verbatim to tools/createModule.js.
 // They use template literals internally but are stored here as regular strings
