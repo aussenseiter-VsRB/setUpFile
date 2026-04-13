@@ -490,7 +490,7 @@ if (!name) {
   process.exit(1)
 }
 
-const validTypes = ["all", "controller", "routes"]
+const validTypes = ["all", "controller", "routes", "service"]
 if (!validTypes.includes(type)) {
   console.error(\`Invalid type "\${type}". Use: \${validTypes.join(", ")}\`)
   process.exit(1)
@@ -500,12 +500,39 @@ const cap = name.charAt(0).toUpperCase() + name.slice(1)
 const featureDir = path.join(process.cwd(), "src", "features", name)
 if (!fs.existsSync(featureDir)) fs.mkdirSync(featureDir, { recursive: true })
 
-const controllerContent =
+const serviceContent =
 \`import prisma from "../../config/db.js"
+
+export const getAll\${cap} = async () => {
+  return await prisma.\${name}.findMany()
+}
+
+export const get\${cap}ById = async (id) => {
+  return await prisma.\${name}.findUnique({ where: { id: Number(id) } })
+}
+
+export const create\${cap} = async (data) => {
+  return await prisma.\${name}.create({ data })
+}
+
+export const update\${cap} = async (id, data) => {
+  return await prisma.\${name}.update({
+    where: { id: Number(id) },
+    data,
+  })
+}
+
+export const delete\${cap} = async (id) => {
+  return await prisma.\${name}.delete({ where: { id: Number(id) } })
+}
+\`
+
+const controllerContent =
+\`import * as \${name}Service from "./\${name}.service.js"
 
 export const getAll\${cap} = async (req, res) => {
   try {
-    const items = await prisma.\${name}.findMany()
+    const items = await \${name}Service.getAll\${cap}()
     res.json(items)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -514,7 +541,7 @@ export const getAll\${cap} = async (req, res) => {
 
 export const get\${cap}ById = async (req, res) => {
   try {
-    const item = await prisma.\${name}.findUnique({ where: { id: Number(req.params.id) } })
+    const item = await \${name}Service.get\${cap}ById(req.params.id)
     if (!item) return res.status(404).json({ error: "\${cap} not found" })
     res.json(item)
   } catch (err) {
@@ -524,7 +551,7 @@ export const get\${cap}ById = async (req, res) => {
 
 export const create\${cap} = async (req, res) => {
   try {
-    const item = await prisma.\${name}.create({ data: req.body })
+    const item = await \${name}Service.create\${cap}(req.body)
     res.status(201).json(item)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -533,10 +560,7 @@ export const create\${cap} = async (req, res) => {
 
 export const update\${cap} = async (req, res) => {
   try {
-    const item = await prisma.\${name}.update({
-      where: { id: Number(req.params.id) },
-      data: req.body,
-    })
+    const item = await \${name}Service.update\${cap}(req.params.id, req.body)
     res.json(item)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -545,7 +569,7 @@ export const update\${cap} = async (req, res) => {
 
 export const delete\${cap} = async (req, res) => {
   try {
-    await prisma.\${name}.delete({ where: { id: Number(req.params.id) } })
+    await \${name}Service.delete\${cap}(req.params.id)
     res.status(204).send()
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -579,6 +603,7 @@ const write = (fileName, content) => {
   console.log(\`  Created: \${fileName}\`)
 }
 
+if (type === "all" || type === "service")    write(\`\${name}.service.js\`,   serviceContent)
 if (type === "all" || type === "controller") write(\`\${name}.controller.js\`, controllerContent)
 if (type === "all" || type === "routes")     write(\`\${name}.routes.js\`,     routeContent)
 
@@ -601,7 +626,7 @@ if (!name) {
   process.exit(1)
 }
 
-const validTypes = ["all", "controller", "routes", "model"]
+const validTypes = ["all", "controller", "routes", "model", "service"]
 if (!validTypes.includes(type)) {
   console.error(\`Invalid type "\${type}". Use: \${validTypes.join(", ")}\`)
   process.exit(1)
@@ -622,12 +647,39 @@ const \${cap} = sequelize.define("\${cap}", {
 export default \${cap}
 \`
 
-const controllerContent =
+const serviceContent =
 \`import \${cap} from "./\${name}.model.js"
+
+export const getAll\${cap} = async () => {
+  return await \${cap}.findAll()
+}
+
+export const get\${cap}ById = async (id) => {
+  return await \${cap}.findByPk(id)
+}
+
+export const create\${cap} = async (data) => {
+  return await \${cap}.create(data)
+}
+
+export const update\${cap} = async (id, data) => {
+  const [updated] = await \${cap}.update(data, { where: { id } })
+  if (!updated) return null
+  return await \${cap}.findByPk(id)
+}
+
+export const delete\${cap} = async (id) => {
+  const deleted = await \${cap}.destroy({ where: { id } })
+  return deleted > 0
+}
+\`
+
+const controllerContent =
+\`import * as \${name}Service from "./\${name}.service.js"
 
 export const getAll\${cap} = async (req, res) => {
   try {
-    const items = await \${cap}.findAll()
+    const items = await \${name}Service.getAll\${cap}()
     res.json(items)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -636,7 +688,7 @@ export const getAll\${cap} = async (req, res) => {
 
 export const get\${cap}ById = async (req, res) => {
   try {
-    const item = await \${cap}.findByPk(req.params.id)
+    const item = await \${name}Service.get\${cap}ById(req.params.id)
     if (!item) return res.status(404).json({ error: "\${cap} not found" })
     res.json(item)
   } catch (err) {
@@ -646,7 +698,7 @@ export const get\${cap}ById = async (req, res) => {
 
 export const create\${cap} = async (req, res) => {
   try {
-    const item = await \${cap}.create(req.body)
+    const item = await \${name}Service.create\${cap}(req.body)
     res.status(201).json(item)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -655,9 +707,9 @@ export const create\${cap} = async (req, res) => {
 
 export const update\${cap} = async (req, res) => {
   try {
-    const [updated] = await \${cap}.update(req.body, { where: { id: req.params.id } })
-    if (!updated) return res.status(404).json({ error: "\${cap} not found" })
-    res.json(await \${cap}.findByPk(req.params.id))
+    const item = await \${name}Service.update\${cap}(req.params.id, req.body)
+    if (!item) return res.status(404).json({ error: "\${cap} not found" })
+    res.json(item)
   } catch (err) {
     res.status(400).json({ error: err.message })
   }
@@ -665,7 +717,7 @@ export const update\${cap} = async (req, res) => {
 
 export const delete\${cap} = async (req, res) => {
   try {
-    const deleted = await \${cap}.destroy({ where: { id: req.params.id } })
+    const deleted = await \${name}Service.delete\${cap}(req.params.id)
     if (!deleted) return res.status(404).json({ error: "\${cap} not found" })
     res.status(204).send()
   } catch (err) {
@@ -701,6 +753,7 @@ const write = (fileName, content) => {
 }
 
 if (type === "all" || type === "model")      write(\`\${name}.model.js\`,      modelContent)
+if (type === "all" || type === "service")    write(\`\${name}.service.js\`,    serviceContent)
 if (type === "all" || type === "controller") write(\`\${name}.controller.js\`, controllerContent)
 if (type === "all" || type === "routes")     write(\`\${name}.routes.js\`,     routeContent)
 
@@ -721,7 +774,7 @@ if (!name) {
   process.exit(1)
 }
 
-const validTypes = ["all", "controller", "routes", "model"]
+const validTypes = ["all", "controller", "routes", "model", "service"]
 if (!validTypes.includes(type)) {
   console.error(\`Invalid type "\${type}". Use: \${validTypes.join(", ")}\`)
   process.exit(1)
@@ -745,12 +798,36 @@ const \${cap} = mongoose.model("\${cap}", \${name}Schema)
 export default \${cap}
 \`
 
-const controllerContent =
+const serviceContent =
 \`import \${cap} from "./\${name}.model.js"
+
+export const getAll\${cap} = async () => {
+  return await \${cap}.find()
+}
+
+export const get\${cap}ById = async (id) => {
+  return await \${cap}.findById(id)
+}
+
+export const create\${cap} = async (data) => {
+  return await \${cap}.create(data)
+}
+
+export const update\${cap} = async (id, data) => {
+  return await \${cap}.findByIdAndUpdate(id, data, { new: true, runValidators: true })
+}
+
+export const delete\${cap} = async (id) => {
+  return await \${cap}.findByIdAndDelete(id)
+}
+\`
+
+const controllerContent =
+\`import * as \${name}Service from "./\${name}.service.js"
 
 export const getAll\${cap} = async (req, res) => {
   try {
-    const items = await \${cap}.find()
+    const items = await \${name}Service.getAll\${cap}()
     res.json(items)
   } catch (err) {
     res.status(500).json({ error: err.message })
@@ -759,7 +836,7 @@ export const getAll\${cap} = async (req, res) => {
 
 export const get\${cap}ById = async (req, res) => {
   try {
-    const item = await \${cap}.findById(req.params.id)
+    const item = await \${name}Service.get\${cap}ById(req.params.id)
     if (!item) return res.status(404).json({ error: "\${cap} not found" })
     res.json(item)
   } catch (err) {
@@ -769,7 +846,7 @@ export const get\${cap}ById = async (req, res) => {
 
 export const create\${cap} = async (req, res) => {
   try {
-    const item = await \${cap}.create(req.body)
+    const item = await \${name}Service.create\${cap}(req.body)
     res.status(201).json(item)
   } catch (err) {
     res.status(400).json({ error: err.message })
@@ -778,10 +855,7 @@ export const create\${cap} = async (req, res) => {
 
 export const update\${cap} = async (req, res) => {
   try {
-    const item = await \${cap}.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    })
+    const item = await \${name}Service.update\${cap}(req.params.id, req.body)
     if (!item) return res.status(404).json({ error: "\${cap} not found" })
     res.json(item)
   } catch (err) {
@@ -791,7 +865,7 @@ export const update\${cap} = async (req, res) => {
 
 export const delete\${cap} = async (req, res) => {
   try {
-    const item = await \${cap}.findByIdAndDelete(req.params.id)
+    const item = await \${name}Service.delete\${cap}(req.params.id)
     if (!item) return res.status(404).json({ error: "\${cap} not found" })
     res.status(204).send()
   } catch (err) {
@@ -827,6 +901,7 @@ const write = (fileName, content) => {
 }
 
 if (type === "all" || type === "model")      write(\`\${name}.model.js\`,      modelContent)
+if (type === "all" || type === "service")    write(\`\${name}.service.js\`,    serviceContent)
 if (type === "all" || type === "controller") write(\`\${name}.controller.js\`, controllerContent)
 if (type === "all" || type === "routes")     write(\`\${name}.routes.js\`,     routeContent)
 
